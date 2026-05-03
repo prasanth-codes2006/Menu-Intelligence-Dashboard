@@ -83,11 +83,11 @@ project/
 ```bash
 cd backend
 python -m venv venv
-venv\Scripts\activate          # Windows
+backend\venv\Scripts\activate         # Windows
 # source venv/bin/activate     # Mac/Linux
 
 pip install -r requirements.txt
-uvicorn backend.main:app --reload
+python -m uvicorn backend.main:app --reload
 ```
 
 The API will be live at **http://localhost:8000**

@@ -126,6 +126,46 @@ function App() {
   }
 
   // ---------------------------------------------------------------------------
+  // Delete Menu Item
+  // ---------------------------------------------------------------------------
+  const handleDeleteMenuItem = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this menu item?")) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/menu/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        fetchMenuItems();
+      } else {
+        const errorData = await response.json();
+        alert('Failed to delete menu item: ' + (errorData.detail || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting menu item:', error);
+      alert('Could not connect to the backend.');
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Delete Order
+  // ---------------------------------------------------------------------------
+  const handleDeleteOrder = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this order?")) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        fetchOrders();
+      } else {
+        const errorData = await response.json();
+        alert('Failed to delete order: ' + (errorData.detail || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('Could not connect to the backend.');
+    }
+  };
+
+  // ---------------------------------------------------------------------------
   // Helper: get item name by its ID (for the orders table)
   // ---------------------------------------------------------------------------
 
@@ -193,6 +233,7 @@ function App() {
                   <th>Name</th>
                   <th>Price</th>
                   <th>Cost</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -202,11 +243,19 @@ function App() {
                     <td>{item.name}</td>
                     <td>${Number(item.price).toFixed(2)}</td>
                     <td>${Number(item.cost).toFixed(2)}</td>
+                    <td>
+                      <button 
+                        className="btn btn-danger btn-sm" 
+                        onClick={() => handleDeleteMenuItem(item.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {menuItems.length === 0 && (
                   <tr>
-                    <td colSpan="4" className="text-center">No menu items found.</td>
+                    <td colSpan="5" className="text-center">No menu items found.</td>
                   </tr>
                 )}
               </tbody>
@@ -252,6 +301,7 @@ function App() {
                   <th>Item Name</th>
                   <th>Quantity</th>
                   <th>Date</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -261,11 +311,19 @@ function App() {
                     <td>{getItemName(order.item_id)}</td>
                     <td>{order.quantity}</td>
                     <td>{new Date(order.date).toLocaleString()}</td>
+                    <td>
+                      <button 
+                        className="btn btn-danger btn-sm" 
+                        onClick={() => handleDeleteOrder(order.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {orders.length === 0 && (
                   <tr>
-                    <td colSpan="4" className="text-center">No orders found.</td>
+                    <td colSpan="5" className="text-center">No orders found.</td>
                   </tr>
                 )}
               </tbody>
