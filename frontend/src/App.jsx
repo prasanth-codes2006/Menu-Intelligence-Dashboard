@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react'
-import { supabase } from './utils/supabase'
+
+// ---------------------------------------------------------------------------
+// All requests go to FastAPI backend (NOT directly to Supabase)
+// FastAPI is the ONLY layer that talks to the database.
+// ---------------------------------------------------------------------------
+const API_BASE_URL = 'http://localhost:8000'
 
 function App() {
   const [menuItems, setMenuItems] = useState([])
@@ -10,32 +15,28 @@ function App() {
   const [newOrder, setNewOrder] = useState({ item_id: '', quantity: '' })
 
   // ---------------------------------------------------------------------------
-  // Fetch data from Supabase
+  // Fetch data from FastAPI backend
   // ---------------------------------------------------------------------------
 
   const fetchMenuItems = async () => {
-    const { data, error } = await supabase
-      .from('menu_items')
-      .select('*')
-      .order('id', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching menu items:', error)
-    } else {
+    try {
+      const response = await fetch(`${API_BASE_URL}/menu/`)
+      if (!response.ok) throw new Error('Failed to fetch menu items')
+      const data = await response.json()
       setMenuItems(data)
+    } catch (error) {
+      console.error('Error fetching menu items:', error)
     }
   }
 
   const fetchOrders = async () => {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .order('id', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching orders:', error)
-    } else {
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders/`)
+      if (!response.ok) throw new Error('Failed to fetch orders')
+      const data = await response.json()
       setOrders(data)
+    } catch (error) {
+      console.error('Error fetching orders:', error)
     }
   }
 
@@ -46,7 +47,7 @@ function App() {
   }, [])
 
   // ---------------------------------------------------------------------------
-  // Add Menu Item (insert into Supabase)
+  // Add Menu Item → POST to FastAPI
   // ---------------------------------------------------------------------------
 
   const handleAddMenuItem = async (e) => {
@@ -55,27 +56,38 @@ function App() {
     const price = parseFloat(newMenuItem.price)
     const cost = parseFloat(newMenuItem.cost)
 
-    // Client-side validation
+    // Client-side validation (FastAPI also validates on the backend)
     if (price <= 0 || cost <= 0) {
       alert('Price and Cost must be greater than 0.')
       return
     }
 
-    const { error } = await supabase
-      .from('menu_items')
-      .insert([{ name: newMenuItem.name, price, cost }])
+    try {
+      const response = await fetch(`${API_BASE_URL}/menu/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newMenuItem.name,
+          price: price,
+          cost: cost
+        })
+      })
 
-    if (error) {
+      if (response.ok) {
+        setNewMenuItem({ name: '', price: '', cost: '' })
+        fetchMenuItems() // Refresh the list
+      } else {
+        const errorData = await response.json()
+        alert('Failed to add menu item: ' + (errorData.detail || 'Unknown error'))
+      }
+    } catch (error) {
       console.error('Error adding menu item:', error)
-      alert('Failed to add menu item: ' + error.message)
-    } else {
-      setNewMenuItem({ name: '', price: '', cost: '' })
-      fetchMenuItems()
+      alert('Could not connect to the backend. Is FastAPI running?')
     }
   }
 
   // ---------------------------------------------------------------------------
-  // Add Order (insert into Supabase)
+  // Add Order → POST to FastAPI
   // ---------------------------------------------------------------------------
 
   const handleAddOrder = async (e) => {
@@ -84,22 +96,32 @@ function App() {
     const quantity = parseInt(newOrder.quantity)
     const item_id = parseInt(newOrder.item_id)
 
-    // Client-side validation
+    // Client-side validation (FastAPI also validates on the backend)
     if (quantity <= 0) {
       alert('Quantity must be greater than 0.')
       return
     }
 
-    const { error } = await supabase
-      .from('orders')
-      .insert([{ item_id, quantity }])
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          item_id: item_id,
+          quantity: quantity
+        })
+      })
 
-    if (error) {
+      if (response.ok) {
+        setNewOrder({ item_id: '', quantity: '' })
+        fetchOrders() // Refresh the list
+      } else {
+        const errorData = await response.json()
+        alert('Failed to add order: ' + (errorData.detail || 'Unknown error'))
+      }
+    } catch (error) {
       console.error('Error adding order:', error)
-      alert('Failed to add order: ' + error.message)
-    } else {
-      setNewOrder({ item_id: '', quantity: '' })
-      fetchOrders()
+      alert('Could not connect to the backend. Is FastAPI running?')
     }
   }
 
@@ -120,7 +142,7 @@ function App() {
     <div className="container">
       <header>
         <h1>Menu Intelligence Dashboard</h1>
-        <p>Week 1: Basic Operations &nbsp;·&nbsp; Powered by Supabase</p>
+        <p>Week 1: Basic Operations</p>
       </header>
 
       <main className="dashboard">

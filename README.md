@@ -1,130 +1,162 @@
 # Menu Intelligence Dashboard (Week 1)
 
-This is the Week 1 implementation of the Menu Intelligence Dashboard, now **powered by Supabase** (PostgreSQL).
+A restaurant analytics project built with a clean **React → FastAPI → Supabase** architecture.
+
+## Architecture Flow
+
+```
+┌──────────────┐       fetch()        ┌──────────────────┐     SQLAlchemy      ┌─────────────────────┐
+│              │  ──────────────────►  │                  │  ────────────────►  │                     │
+│  React UI    │   HTTP requests      │  FastAPI Backend  │   PostgreSQL conn   │  Supabase Database  │
+│  (Vite)      │  ◄──────────────────  │  (Python)        │  ◄────────────────  │  (PostgreSQL)       │
+│              │     JSON responses   │                  │     query results   │                     │
+└──────────────┘                      └──────────────────┘                     └─────────────────────┘
+ localhost:5173                        localhost:8000                           cloud (supabase.co)
+```
+
+**Important:** The frontend does NOT talk to Supabase directly. All database interaction happens only through FastAPI.
 
 ## Project Structure
 
 ```
 project/
-├── backend/               # FastAPI backend (connects to Supabase PostgreSQL)
-│   ├── .env               # DATABASE_URL (Supabase connection string)
-│   ├── database.py        # SQLAlchemy engine setup
-│   ├── main.py            # FastAPI app entry point
-│   ├── models.py          # SQLAlchemy ORM models
-│   ├── schemas.py         # Pydantic validation schemas
-│   ├── requirements.txt   # Python dependencies
+├── backend/                    # FastAPI backend
+│   ├── .env                    # DATABASE_URL (Supabase connection string)
+│   ├── __init__.py
+│   ├── database.py             # SQLAlchemy engine + session setup
+│   ├── main.py                 # FastAPI app, CORS, route registration
+│   ├── models.py               # SQLAlchemy ORM models (MenuItem, Order)
+│   ├── schemas.py              # Pydantic validation schemas
+│   ├── requirements.txt        # Python dependencies
 │   └── routes/
-│       ├── menu.py        # /menu endpoints
-│       └── orders.py      # /orders endpoints
-├── frontend/              # React (Vite) frontend
-│   ├── .env               # Supabase URL & publishable key
-│   ├── src/
-│   │   ├── App.jsx        # Main dashboard UI
-│   │   ├── index.css      # Styling
-│   │   ├── main.jsx       # React entry point
-│   │   └── utils/
-│   │       └── supabase.js  # Supabase JS client
+│       ├── __init__.py
+│       ├── menu.py             # POST /menu, GET /menu
+│       └── orders.py           # POST /orders, GET /orders
+├── frontend/                   # React (Vite) frontend
+│   ├── index.html
 │   ├── package.json
-│   └── vite.config.js
-├── schema.sql             # PostgreSQL table definitions (run in Supabase SQL Editor)
+│   ├── vite.config.js
+│   └── src/
+│       ├── App.jsx             # Main UI (uses fetch() to call FastAPI)
+│       ├── index.css           # Styling
+│       └── main.jsx            # React entry point
+├── schema.sql                  # PostgreSQL table definitions + sample data
+├── .gitignore
 └── README.md
 ```
 
 ## Prerequisites
 
-- Python 3.8+
-- Node.js 18+
-- A [Supabase](https://supabase.com) project (already created)
+- **Python 3.8+**
+- **Node.js 18+**
+- A **Supabase** account (free tier works fine)
 
 ---
 
-## Setup Instructions
+## Setup Instructions (Step by Step)
 
-### 1. Create Tables in Supabase
+### Step 1: Set Up Supabase Database
 
-1. Open your **Supabase Dashboard** → **SQL Editor**.
-2. Paste the contents of `schema.sql` and click **Run**.
-3. This creates the `menu_items` and `orders` tables with sample data.
+1. Go to [https://supabase.com](https://supabase.com) and sign in.
+2. Open your project (or create a new one).
+3. In the left sidebar, click **SQL Editor**.
+4. Click **New Query**.
+5. Copy the entire contents of `schema.sql` from this project and paste it in.
+6. Click **Run** — this creates the `menu_items` and `orders` tables with sample data.
 
-### 2. Backend Setup
+### Step 2: Get Your Database Connection String
 
-1. Open a terminal and navigate to the `backend` folder.
-2. Edit the `.env` file and replace `YOUR_DB_PASSWORD` with your Supabase database password:
+1. In Supabase, go to **Project Settings** (gear icon in sidebar).
+2. Click **Database** in the left menu.
+3. Scroll down to **Connection string** and select the **URI** tab.
+4. Copy the connection string. It looks like:
+   ```
+   postgresql://postgres.xddofivbotnazilfcqkh:[YOUR-PASSWORD]@aws-0-ap-south-1.pooler.supabase.com:6543/postgres
+   ```
+5. Open `backend/.env` and paste your connection string:
    ```
    DATABASE_URL=postgresql://postgres.xddofivbotnazilfcqkh:YOUR_ACTUAL_PASSWORD@aws-0-ap-south-1.pooler.supabase.com:6543/postgres
    ```
-   > Find this connection string in: **Supabase Dashboard → Settings → Database → Connection string (URI)**
 
-3. Create and activate a virtual environment (recommended):
-   ```bash
-   python -m venv venv
-   venv\Scripts\activate        # Windows
-   # source venv/bin/activate   # Mac/Linux
-   ```
+### Step 3: Start the Backend (FastAPI)
 
-4. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate          # Windows
+# source venv/bin/activate     # Mac/Linux
 
-5. Run the FastAPI server:
-   ```bash
-   uvicorn backend.main:app --reload
-   ```
-   - API: `http://localhost:8000`
-   - Swagger Docs: `http://localhost:8000/docs`
+pip install -r requirements.txt
+uvicorn backend.main:app --reload
+```
 
-### 3. Frontend Setup
+The API will be live at **http://localhost:8000**
+Swagger docs at **http://localhost:8000/docs**
 
-1. Open a **new terminal** and navigate to the `frontend` folder.
-2. The `.env` file is already configured with your Supabase URL and key.
-3. Install dependencies:
-   ```bash
-   npm install
-   ```
-4. Start the dev server:
-   ```bash
-   npm run dev
-   ```
-   - UI: `http://localhost:5173`
+### Step 4: Start the Frontend (React)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The UI will be live at **http://localhost:5173**
 
 ---
 
-## How It Works
+## API Endpoints
 
-| Layer    | Talks to            | How                                |
-|----------|---------------------|------------------------------------|
-| Frontend | Supabase directly   | `@supabase/supabase-js` client     |
-| Backend  | Supabase PostgreSQL | SQLAlchemy + `psycopg2-binary`     |
+| Method | Endpoint   | Description         | Request Body                                       |
+|--------|------------|---------------------|---------------------------------------------------|
+| GET    | /menu/     | List all menu items | —                                                 |
+| POST   | /menu/     | Add a menu item     | `{"name": "Burger", "price": 12.99, "cost": 5.50}` |
+| GET    | /orders/   | List all orders     | —                                                 |
+| POST   | /orders/   | Add an order        | `{"item_id": 1, "quantity": 3}`                    |
 
-The **frontend** uses the Supabase JS client to read/write data directly.  
-The **backend** connects to the same Supabase PostgreSQL database via SQLAlchemy, providing validated REST API endpoints.
+### Example: Add a Menu Item
 
----
+**Request:**
+```bash
+curl -X POST http://localhost:8000/menu/ \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Fish Tacos", "price": 11.99, "cost": 4.50}'
+```
 
-## Sample API Requests (via Swagger or cURL)
-
-### Add a Menu Item
-**POST** `http://localhost:8000/menu/`
+**Response:**
 ```json
 {
   "name": "Fish Tacos",
   "price": 11.99,
-  "cost": 4.50
+  "cost": 4.50,
+  "id": 6
 }
 ```
 
-### Add an Order
-**POST** `http://localhost:8000/orders/`
+### Example: Add an Order
+
+**Request:**
+```bash
+curl -X POST http://localhost:8000/orders/ \
+  -H "Content-Type: application/json" \
+  -d '{"item_id": 1, "quantity": 5}'
+```
+
+**Response:**
 ```json
 {
   "item_id": 1,
-  "quantity": 3
+  "quantity": 5,
+  "id": 8,
+  "date": "2026-05-03T10:00:00.000000"
 }
 ```
 
-### List Menu Items
-**GET** `http://localhost:8000/menu/`
+## Validation Rules
 
-### List Orders
-**GET** `http://localhost:8000/orders/`
+| Field    | Rule                        | Enforced By        |
+|----------|-----------------------------|--------------------|
+| price    | Must be > 0                 | Pydantic + Postgres |
+| cost     | Must be > 0                 | Pydantic + Postgres |
+| quantity | Must be > 0                 | Pydantic + Postgres |
+| item_id  | Must reference existing item | FastAPI route check |
