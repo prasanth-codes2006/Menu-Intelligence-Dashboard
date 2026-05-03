@@ -201,7 +201,7 @@ function App() {
               />
             </div>
             <div className="form-group">
-              <label>Price ($)</label>
+              <label>Price (₹)</label>
               <input
                 type="number"
                 step="0.01"
@@ -212,7 +212,7 @@ function App() {
               />
             </div>
             <div className="form-group">
-              <label>Cost ($)</label>
+              <label>Cost (₹)</label>
               <input
                 type="number"
                 step="0.01"
@@ -241,8 +241,8 @@ function App() {
                   <tr key={item.id}>
                     <td>{item.id}</td>
                     <td>{item.name}</td>
-                    <td>${Number(item.price).toFixed(2)}</td>
-                    <td>${Number(item.cost).toFixed(2)}</td>
+                    <td>₹{Number(item.price).toFixed(2)}</td>
+                    <td>₹{Number(item.cost).toFixed(2)}</td>
                     <td>
                       <button 
                         className="btn btn-danger btn-sm" 
