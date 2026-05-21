@@ -1,338 +1,163 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// ---------------------------------------------------------------------------
-// All requests go to FastAPI backend (NOT directly to Supabase)
-// FastAPI is the ONLY layer that talks to the database.
-// ---------------------------------------------------------------------------
-const API_BASE_URL = 'http://localhost:8000'
+import Sidebar from './components/Sidebar';
+import Topbar from './components/Topbar';
+import CommandPalette from './components/CommandPalette';
+import AuthPage from './pages/AuthPage';
+import DashboardPage from './pages/DashboardPage';
+import AnalyticsPage from './pages/AnalyticsPage';
+import ReportsPage from './pages/ReportsPage';
+import MenuPage from './pages/MenuPage';
+import OrdersPage from './pages/OrdersPage';
+import SettingsPage from './pages/SettingsPage';
 
-function App() {
-  const [menuItems, setMenuItems] = useState([])
-  const [orders, setOrders] = useState([])
+// Map paths to page titles
+const pageTitles = {
+  '/': 'Dashboard Overview',
+  '/analytics': 'Analytics',
+  '/reports': 'Reports',
+  '/menu': 'Menu Management',
+  '/orders': 'Orders',
+  '/settings': 'Settings',
+};
 
-  // Form state
-  const [newMenuItem, setNewMenuItem] = useState({ name: '', price: '', cost: '' })
-  const [newOrder, setNewOrder] = useState({ item_id: '', quantity: '' })
+function AppLayout({ role, setRole, onLogout }) {
+  const location = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
-  // ---------------------------------------------------------------------------
-  // Fetch data from FastAPI backend
-  // ---------------------------------------------------------------------------
+  const pageTitle = pageTitles[location.pathname] || 'Dashboard Overview';
 
-  const fetchMenuItems = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/menu/`)
-      if (!response.ok) throw new Error('Failed to fetch menu items')
-      const data = await response.json()
-      setMenuItems(data)
-    } catch (error) {
-      console.error('Error fetching menu items:', error)
-    }
-  }
-
-  const fetchOrders = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/orders/`)
-      if (!response.ok) throw new Error('Failed to fetch orders')
-      const data = await response.json()
-      setOrders(data)
-    } catch (error) {
-      console.error('Error fetching orders:', error)
-    }
-  }
-
-  // Load data on first render
+  // Listen for Ctrl+K keyboard shortcut to open command palette
   useEffect(() => {
-    fetchMenuItems()
-    fetchOrders()
-  }, [])
-
-  // ---------------------------------------------------------------------------
-  // Add Menu Item → POST to FastAPI
-  // ---------------------------------------------------------------------------
-
-  const handleAddMenuItem = async (e) => {
-    e.preventDefault()
-
-    const price = parseFloat(newMenuItem.price)
-    const cost = parseFloat(newMenuItem.cost)
-
-    // Client-side validation (FastAPI also validates on the backend)
-    if (price <= 0 || cost <= 0) {
-      alert('Price and Cost must be greater than 0.')
-      return
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/menu/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newMenuItem.name,
-          price: price,
-          cost: cost
-        })
-      })
-
-      if (response.ok) {
-        setNewMenuItem({ name: '', price: '', cost: '' })
-        fetchMenuItems() // Refresh the list
-      } else {
-        const errorData = await response.json()
-        alert('Failed to add menu item: ' + (errorData.detail || 'Unknown error'))
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
       }
-    } catch (error) {
-      console.error('Error adding menu item:', error)
-      alert('Could not connect to the backend. Is FastAPI running?')
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Add Order → POST to FastAPI
-  // ---------------------------------------------------------------------------
-
-  const handleAddOrder = async (e) => {
-    e.preventDefault()
-
-    const quantity = parseInt(newOrder.quantity)
-    const item_id = parseInt(newOrder.item_id)
-
-    // Client-side validation (FastAPI also validates on the backend)
-    if (quantity <= 0) {
-      alert('Quantity must be greater than 0.')
-      return
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/orders/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          item_id: item_id,
-          quantity: quantity
-        })
-      })
-
-      if (response.ok) {
-        setNewOrder({ item_id: '', quantity: '' })
-        fetchOrders() // Refresh the list
-      } else {
-        const errorData = await response.json()
-        alert('Failed to add order: ' + (errorData.detail || 'Unknown error'))
-      }
-    } catch (error) {
-      console.error('Error adding order:', error)
-      alert('Could not connect to the backend. Is FastAPI running?')
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Delete Menu Item
-  // ---------------------------------------------------------------------------
-  const handleDeleteMenuItem = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this menu item?")) return;
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/menu/${id}`, { method: 'DELETE' });
-      if (response.ok) {
-        fetchMenuItems();
-      } else {
-        const errorData = await response.json();
-        alert('Failed to delete menu item: ' + (errorData.detail || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error deleting menu item:', error);
-      alert('Could not connect to the backend.');
-    }
-  };
-
-  // ---------------------------------------------------------------------------
-  // Delete Order
-  // ---------------------------------------------------------------------------
-  const handleDeleteOrder = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this order?")) return;
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/orders/${id}`, { method: 'DELETE' });
-      if (response.ok) {
-        fetchOrders();
-      } else {
-        const errorData = await response.json();
-        alert('Failed to delete order: ' + (errorData.detail || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error deleting order:', error);
-      alert('Could not connect to the backend.');
-    }
-  };
-
-  // ---------------------------------------------------------------------------
-  // Helper: get item name by its ID (for the orders table)
-  // ---------------------------------------------------------------------------
-
-  const getItemName = (id) => {
-    const item = menuItems.find(item => item.id === id)
-    return item ? item.name : 'Unknown Item'
-  }
-
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
-    <div className="container">
-      <header>
-        <h1>Menu Intelligence Dashboard</h1>
-        <p>Week 1: Basic Operations</p>
-      </header>
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 flex">
+      {/* Sidebar navigation */}
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} role={role} />
 
-      <main className="dashboard">
-        {/* -------- Menu Items Section -------- */}
-        <section className="card">
-          <h2>Menu Items</h2>
-          <form onSubmit={handleAddMenuItem} className="form">
-            <div className="form-group">
-              <label>Item Name</label>
-              <input
-                type="text"
-                required
-                value={newMenuItem.name}
-                onChange={(e) => setNewMenuItem({ ...newMenuItem, name: e.target.value })}
-                placeholder="e.g. Burger"
-              />
-            </div>
-            <div className="form-group">
-              <label>Price (₹)</label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={newMenuItem.price}
-                onChange={(e) => setNewMenuItem({ ...newMenuItem, price: e.target.value })}
-                placeholder="0.00"
-              />
-            </div>
-            <div className="form-group">
-              <label>Cost (₹)</label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={newMenuItem.cost}
-                onChange={(e) => setNewMenuItem({ ...newMenuItem, cost: e.target.value })}
-                placeholder="0.00"
-              />
-            </div>
-            <button type="submit" className="btn">Add Menu Item</button>
-          </form>
+      {/* Main Panel Content Area */}
+      <div 
+        className="flex-1 flex flex-col min-h-screen transition-all duration-300"
+        style={{ marginLeft: collapsed ? 80 : 280 }}
+      >
+        <Topbar 
+          role={role} 
+          setRole={setRole} 
+          pageTitle={pageTitle} 
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          onLogout={onLogout}
+        />
 
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Price</th>
-                  <th>Cost</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {menuItems.map(item => (
-                  <tr key={item.id}>
-                    <td>{item.id}</td>
-                    <td>{item.name}</td>
-                    <td>₹{Number(item.price).toFixed(2)}</td>
-                    <td>₹{Number(item.cost).toFixed(2)}</td>
-                    <td>
-                      <button 
-                        className="btn btn-danger btn-sm" 
-                        onClick={() => handleDeleteMenuItem(item.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {menuItems.length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="text-center">No menu items found.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        {/* Page Main container with routing transition animations */}
+        <main className="flex-grow p-6 sm:p-8">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="w-full"
+            >
+              <Routes location={location}>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/menu" element={<MenuPage role={role} />} />
+                <Route path="/orders" element={<OrdersPage role={role} />} />
+                <Route path="/settings" element={<SettingsPage role={role} />} />
+              </Routes>
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
 
-        {/* -------- Orders Section -------- */}
-        <section className="card">
-          <h2>Orders</h2>
-          <form onSubmit={handleAddOrder} className="form">
-            <div className="form-group">
-              <label>Select Menu Item</label>
-              <select
-                required
-                value={newOrder.item_id}
-                onChange={(e) => setNewOrder({ ...newOrder, item_id: e.target.value })}
-              >
-                <option value="" disabled>-- Select an Item --</option>
-                {menuItems.map(item => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Quantity</label>
-              <input
-                type="number"
-                required
-                value={newOrder.quantity}
-                onChange={(e) => setNewOrder({ ...newOrder, quantity: e.target.value })}
-                placeholder="1"
-              />
-            </div>
-            <button type="submit" className="btn">Add Order</button>
-          </form>
+      {/* Global Shortcut Palette */}
+      <CommandPalette 
+        isOpen={isCommandPaletteOpen} 
+        setIsOpen={setIsCommandPaletteOpen}
+        role={role}
+        setRole={setRole}
+      />
 
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Item Name</th>
-                  <th>Quantity</th>
-                  <th>Date</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map(order => (
-                  <tr key={order.id}>
-                    <td>{order.id}</td>
-                    <td>{getItemName(order.item_id)}</td>
-                    <td>{order.quantity}</td>
-                    <td>{new Date(order.date).toLocaleString()}</td>
-                    <td>
-                      <button 
-                        className="btn btn-danger btn-sm" 
-                        onClick={() => handleDeleteOrder(order.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {orders.length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="text-center">No orders found.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
+      {/* Global Toast configurations */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'hsl(var(--card) / 0.95)',
+            color: 'hsl(var(--foreground))',
+            borderRadius: '20px',
+            padding: '16px 24px',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            border: '1px solid hsl(var(--primary) / 0.25)',
+            backdropFilter: 'blur(16px)',
+            boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.15)',
+          },
+          success: {
+            iconTheme: { primary: 'hsl(var(--primary))', secondary: 'hsl(var(--card))' },
+          },
+          error: {
+            iconTheme: { primary: 'hsl(var(--destructive))', secondary: 'hsl(var(--card))' },
+          },
+        }}
+      />
     </div>
-  )
+  );
 }
 
-export default App
+function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem('is_logged_in') === 'true';
+  });
+  const [role, setRole] = useState(() => {
+    return localStorage.getItem('dashboard_role') || 'admin';
+  });
+
+  // Dark mode recovery on startup
+  useEffect(() => {
+    const isDark = localStorage.getItem('theme') === 'dark' || 
+                   (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const handleLogin = (selectedRole) => {
+    setRole(selectedRole);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+  };
+
+  return (
+    <BrowserRouter>
+      {isLoggedIn ? (
+        <AppLayout role={role} setRole={setRole} onLogout={handleLogout} />
+      ) : (
+        <AuthPage onLogin={handleLogin} />
+      )}
+    </BrowserRouter>
+  );
+}
+
+export default App;

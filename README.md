@@ -1,162 +1,217 @@
-# Menu Intelligence Dashboard (Week 1)
+# 🍽️ Menu Intelligence Dashboard
 
-A restaurant analytics project built with a clean **React → FastAPI → Supabase** architecture.
+A modern, full-stack **restaurant analytics dashboard** built with **React**, **FastAPI**, and **Supabase PostgreSQL**. It provides intelligent menu insights, smart recommendations, detailed reports, and CSV exports — designed to be demo-ready for academic evaluation.
 
-## Architecture Flow
+---
+
+## 📋 Project Overview
+
+The Menu Intelligence Dashboard helps restaurant managers make data-driven decisions by analysing menu performance, identifying low-margin items, tracking bestsellers, and providing actionable recommendations.
+
+### Key Features
+
+| Feature | Description |
+|---|---|
+| **Dashboard** | KPI cards, revenue charts, sales trends, pie charts |
+| **Analytics** | Bestsellers, low-margin items, low-performance detection |
+| **Smart Recommendations** | AI-driven suggestions per menu item |
+| **Reports** | Monthly sales, revenue breakdown, CSV exports |
+| **Menu Management** | Full CRUD — add, edit, delete, search items |
+| **Role System** | Admin (full access) / Viewer (read-only) |
+| **Dark Mode** | Toggle between light and dark themes |
+| **Responsive** | Works on desktop, tablet, and mobile |
+
+---
+
+## 🏗️ Architecture
 
 ```
-┌──────────────┐       fetch()        ┌──────────────────┐     SQLAlchemy      ┌─────────────────────┐
-│              │  ──────────────────►  │                  │  ────────────────►  │                     │
-│  React UI    │   HTTP requests      │  FastAPI Backend  │   PostgreSQL conn   │  Supabase Database  │
-│  (Vite)      │  ◄──────────────────  │  (Python)        │  ◄────────────────  │  (PostgreSQL)       │
-│              │     JSON responses   │                  │     query results   │                     │
-└──────────────┘                      └──────────────────┘                     └─────────────────────┘
- localhost:5173                        localhost:8000                           cloud (supabase.co)
+Frontend (React + Vite)  →  FastAPI Backend  →  Supabase PostgreSQL
 ```
 
-**Important:** The frontend does NOT talk to Supabase directly. All database interaction happens only through FastAPI.
+- **React** handles UI rendering and user interaction
+- **FastAPI** handles all business logic, analytics, and database operations
+- **Supabase PostgreSQL** stores menu items and orders
+- Frontend communicates **only** with FastAPI (never directly with database)
 
-## Project Structure
+---
+
+## 📁 Folder Structure
 
 ```
 project/
-├── backend/                    # FastAPI backend
-│   ├── .env                    # DATABASE_URL (Supabase connection string)
-│   ├── __init__.py
-│   ├── database.py             # SQLAlchemy engine + session setup
-│   ├── main.py                 # FastAPI app, CORS, route registration
-│   ├── models.py               # SQLAlchemy ORM models (MenuItem, Order)
+├── backend/
+│   ├── .env                    # Database connection string
+│   ├── main.py                 # FastAPI app entry point
+│   ├── database.py             # SQLAlchemy engine & session
+│   ├── models.py               # Database models (MenuItem, Order)
 │   ├── schemas.py              # Pydantic validation schemas
+│   ├── seed_data.py            # Demo data generator
 │   ├── requirements.txt        # Python dependencies
-│   └── routes/
-│       ├── __init__.py
-│       ├── menu.py             # POST /menu, GET /menu
-│       └── orders.py           # POST /orders, GET /orders
-├── frontend/                   # React (Vite) frontend
+│   ├── routes/
+│   │   ├── menu.py             # Menu CRUD endpoints
+│   │   ├── orders.py           # Order CRUD endpoints
+│   │   ├── analytics.py        # Analytics endpoints
+│   │   └── reports.py          # Reports & CSV export endpoints
+│   └── services/
+│       ├── analytics_service.py # Analytics business logic
+│       └── report_service.py    # Report generation logic
+├── frontend/
 │   ├── index.html
 │   ├── package.json
 │   ├── vite.config.js
 │   └── src/
-│       ├── App.jsx             # Main UI (uses fetch() to call FastAPI)
-│       ├── index.css           # Styling
-│       └── main.jsx            # React entry point
-├── schema.sql                  # PostgreSQL table definitions + sample data
-├── .gitignore
+│       ├── main.jsx            # React entry point
+│       ├── App.jsx             # Root component with routing
+│       ├── index.css           # Complete design system
+│       ├── services/
+│       │   └── api.js          # Centralised API calls
+│       ├── components/
+│       │   ├── Sidebar.jsx     # Navigation sidebar
+│       │   ├── Topbar.jsx      # Top navigation bar
+│       │   ├── KPICard.jsx     # KPI metric card
+│       │   ├── LoadingSpinner.jsx
+│       │   ├── EmptyState.jsx
+│       │   └── DateFilter.jsx  # Date range filter
+│       └── pages/
+│           ├── DashboardPage.jsx  # Dashboard with charts
+│           ├── AnalyticsPage.jsx  # Analytics tables
+│           ├── ReportsPage.jsx    # Reports & exports
+│           └── MenuPage.jsx       # Menu CRUD management
+├── schema.sql                  # Database schema + demo data
 └── README.md
 ```
 
-## Prerequisites
+---
 
-- **Python 3.8+**
-- **Node.js 18+**
-- A **Supabase** account (free tier works fine)
+## 🔌 API Documentation
+
+### Menu Endpoints (`/menu`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/menu/` | List all menu items |
+| GET | `/menu/{id}` | Get single item |
+| POST | `/menu/` | Add new item |
+| PUT | `/menu/{id}` | Update item |
+| DELETE | `/menu/{id}` | Delete item |
+
+### Order Endpoints (`/orders`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/orders/` | List all orders |
+| GET | `/orders/{id}` | Get single order |
+| POST | `/orders/` | Create new order |
+| PUT | `/orders/{id}` | Update order |
+| DELETE | `/orders/{id}` | Delete order |
+
+### Analytics Endpoints (`/analytics`)
+| Method | Endpoint | Query Params | Description |
+|--------|----------|-------------|-------------|
+| GET | `/analytics/bestsellers` | `start_date`, `end_date`, `item_id`, `limit` | Top-selling items |
+| GET | `/analytics/low-margin` | `threshold` | Items below margin threshold |
+| GET | `/analytics/low-performance` | `start_date`, `end_date`, `sales_threshold` | Under-performing items |
+| GET | `/analytics/summary` | — | Dashboard KPI metrics |
+| GET | `/analytics/recommendations` | — | Smart recommendations |
+
+### Report Endpoints (`/reports`)
+| Method | Endpoint | Query Params | Description |
+|--------|----------|-------------|-------------|
+| GET | `/reports/monthly-sales` | `year` | Monthly sales summary |
+| GET | `/reports/revenue` | `start_date`, `end_date` | Revenue per item |
+| GET | `/reports/export-csv` | `report_type`, `start_date`, `end_date` | CSV download |
 
 ---
 
-## Setup Instructions (Step by Step)
+## 🚀 Setup Instructions
 
-### Step 1: Set Up Supabase Database
+### Prerequisites
+- Python 3.9+
+- Node.js 18+
+- A Supabase project (or any PostgreSQL database)
 
-1. Go to [https://supabase.com](https://supabase.com) and sign in.
-2. Open your project (or create a new one).
-3. In the left sidebar, click **SQL Editor**.
-4. Click **New Query**.
-5. Copy the entire contents of `schema.sql` from this project and paste it in.
-6. Click **Run** — this creates the `menu_items` and `orders` tables with sample data.
+### 1. Clone & Setup Database
 
-### Step 2: Get Your Database Connection String
+```bash
+# If using Supabase: paste schema.sql into SQL Editor and run it
+```
 
-1. In Supabase, go to **Project Settings** (gear icon in sidebar).
-2. Click **Database** in the left menu.
-3. Scroll down to **Connection string** and select the **URI** tab.
-4. Copy the connection string. It looks like:
-   ```
-   postgresql://postgres.xddofivbotnazilfcqkh:[YOUR-PASSWORD]@aws-0-ap-south-1.pooler.supabase.com:6543/postgres
-   ```
-5. Open `backend/.env` and paste your connection string:
-   ```
-   DATABASE_URL=postgresql://postgres.xddofivbotnazilfcqkh:YOUR_ACTUAL_PASSWORD@aws-0-ap-south-1.pooler.supabase.com:6543/postgres
-   ```
-
-### Step 3: Start the Backend (FastAPI)
+### 2. Backend Setup
 
 ```bash
 cd backend
+
+# Create virtual environment
 python -m venv venv
-backend\venv\Scripts\activate         # Windows
+venv\Scripts\activate          # Windows
 # source venv/bin/activate     # Mac/Linux
 
+# Install dependencies
 pip install -r requirements.txt
-python -m uvicorn backend.main:app --reload
+
+# Configure database URL in .env
+# DATABASE_URL=postgresql://your_connection_string
+
+# Seed demo data (optional — if not using schema.sql inserts)
+python -m backend.seed_data
+
+# Start the server
+uvicorn backend.main:app --reload
 ```
 
-The API will be live at **http://localhost:8000**
-Swagger docs at **http://localhost:8000/docs**
+Backend runs at: `http://localhost:8000`  
+API docs at: `http://localhost:8000/docs`
 
-### Step 4: Start the Frontend (React)
+### 3. Frontend Setup
 
 ```bash
 cd frontend
+
+# Install dependencies
 npm install
+
+# Start dev server
 npm run dev
 ```
 
-The UI will be live at **http://localhost:5173**
+Frontend runs at: `http://localhost:5173`
 
 ---
 
-## API Endpoints
+## 🧠 Smart Recommendation Rules
 
-| Method | Endpoint   | Description         | Request Body                                       |
-|--------|------------|---------------------|---------------------------------------------------|
-| GET    | /menu/     | List all menu items | —                                                 |
-| POST   | /menu/     | Add a menu item     | `{"name": "Burger", "price": 12.99, "cost": 5.50}` |
-| GET    | /orders/   | List all orders     | —                                                 |
-| POST   | /orders/   | Add an order        | `{"item_id": 1, "quantity": 3}`                    |
+| Condition | Tag | Recommendation |
+|-----------|-----|----------------|
+| Sales ≥ 15 | 🏆 Top Performer | Maintain quality and stock |
+| Sales ≥ 10 | 🚀 Fast Moving | Ensure consistent stock |
+| Sales < 5 | 📉 Low Sales | Consider promotion or combo |
+| Sales = 0 | 🚫 No Sales | Evaluate placement or remove |
+| Margin < 30% | 💸 Low Margin | Increase price or reduce cost |
+| Margin ≥ 50% | 💰 High Margin | Promote this item more |
 
-### Example: Add a Menu Item
+---
 
-**Request:**
-```bash
-curl -X POST http://localhost:8000/menu/ \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Fish Tacos", "price": 11.99, "cost": 4.50}'
-```
+## 👤 Role System
 
-**Response:**
-```json
-{
-  "name": "Fish Tacos",
-  "price": 11.99,
-  "cost": 4.50,
-  "id": 6
-}
-```
+| Role | Permissions |
+|------|------------|
+| **Admin** | View dashboard, analytics, reports + Add/Edit/Delete items and orders |
+| **Viewer** | View dashboard, analytics, reports (read-only) |
 
-### Example: Add an Order
+Toggle between roles using the button in the top navigation bar. Role is persisted in localStorage.
 
-**Request:**
-```bash
-curl -X POST http://localhost:8000/orders/ \
-  -H "Content-Type: application/json" \
-  -d '{"item_id": 1, "quantity": 5}'
-```
+---
 
-**Response:**
-```json
-{
-  "item_id": 1,
-  "quantity": 5,
-  "id": 8,
-  "date": "2026-05-03T10:00:00.000000"
-}
-```
+## 🛠️ Tech Stack
 
-## Validation Rules
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, Vite, Recharts, React Router, React Hot Toast |
+| Backend | FastAPI, SQLAlchemy, Pydantic |
+| Database | Supabase PostgreSQL |
+| Styling | Vanilla CSS (custom design system) |
 
-| Field    | Rule                        | Enforced By        |
-|----------|-----------------------------|--------------------|
-| price    | Must be > 0                 | Pydantic + Postgres |
-| cost     | Must be > 0                 | Pydantic + Postgres |
-| quantity | Must be > 0                 | Pydantic + Postgres |
-| item_id  | Must reference existing item | FastAPI route check |
+---
+
+## 📝 License
+
+This project is for academic/educational purposes.
